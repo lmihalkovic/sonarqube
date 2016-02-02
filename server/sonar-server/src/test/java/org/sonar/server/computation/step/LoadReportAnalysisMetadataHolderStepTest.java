@@ -134,11 +134,25 @@ public class LoadReportAnalysisMetadataHolderStepTest {
   }
 
   @Test
+  public void execute_fails_with_ISE_if_projectKey_is_null_in_CE_task() {
+    CeTask res = mock(CeTask.class);
+    when(res.getComponentUuid()).thenReturn("prj_uuid");
+    reportReader.setMetadata(BatchReport.Metadata.newBuilder().build());
+
+    ComputationStep underTest = new LoadReportAnalysisMetadataHolderStep(res, reportReader, analysisMetadataHolder);
+
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Compute Engine task component key is null. Project with UUID prj_uuid must have been deleted since report was uploaded. Can not proceed.");
+
+    underTest.execute();
+  }
+
+  @Test
   public void execute_fails_with_ISE_when_projectKey_in_report_is_different_from_componentKey_in_CE_task() {
     reportReader.setMetadata(
-        BatchReport.Metadata.newBuilder()
-            .setProjectKey("some other key")
-            .build());
+      BatchReport.Metadata.newBuilder()
+        .setProjectKey("some other key")
+        .build());
 
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage("ProjectKey in report (some other key) is not consistent with projectKey under which the report as been submitted (" + PROJECT_KEY + ")");

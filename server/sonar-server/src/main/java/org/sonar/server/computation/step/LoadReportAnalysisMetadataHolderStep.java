@@ -56,6 +56,10 @@ public class LoadReportAnalysisMetadataHolderStep implements ComputationStep {
   private void checkProjectKeyConsistency(BatchReport.Metadata reportMetadata) {
     String reportProjectKey = projectKeyFromReport(reportMetadata);
     checkState(
+      ceTask.getComponentKey() != null,
+      "Compute Engine task component key is null. Project with UUID %s must have been deleted since report was uploaded. Can not proceed.",
+      ceTask.getComponentUuid());
+    checkState(
       ceTask.getComponentKey().equals(reportProjectKey),
       "ProjectKey in report (%s) is not consistent with projectKey under which the report as been submitted (%s)",
       reportProjectKey,
