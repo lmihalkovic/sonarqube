@@ -51,16 +51,6 @@ class ReportScmInfo implements ScmInfo {
         .transform(new LineIndexToChangeset(changesets)));
   }
 
-  private static Changeset convert(BatchReport.Changesets.Changeset changeset) {
-    checkState(changeset.hasRevision(), "Changeset must have a revision");
-    checkState(changeset.hasDate(), "Changeset must have a date");
-    return Changeset.newChangesetBuilder()
-      .setRevision(changeset.getRevision())
-      .setAuthor(changeset.hasAuthor() ? changeset.getAuthor() : null)
-      .setDate(changeset.getDate())
-      .build();
-  }
-
   @Override
   public Changeset getLatestChangeset() {
     return this.delegate.getLatestChangeset();
@@ -83,23 +73,33 @@ class ReportScmInfo implements ScmInfo {
 
   private static class LineIndexToChangeset implements Function<Integer, Changeset> {
     private final BatchReport.Changesets changesets;
-    private final Map<Integer, Changeset> changeSetCache;
+    private final Map<Integer, Changeset> changesetCache;
 
     public LineIndexToChangeset(BatchReport.Changesets changesets) {
       this.changesets = changesets;
-      changeSetCache = new HashMap<>(changesets.getChangesetCount());
+      changesetCache = new HashMap<>(changesets.getChangesetCount());
     }
 
     @Override
     @Nonnull
     public Changeset apply(@Nonnull Integer lineNumber) {
       int changesetIndex = changesets.getChangesetIndexByLine(lineNumber - 1);
-      if (changeSetCache.containsKey(changesetIndex)) {
-        return changeSetCache.get(changesetIndex);
+      if (changesetCache.containsKey(changesetIndex)) {
+        return changesetCache.get(changesetIndex);
       }
-      Changeset res = convert(changesets.getChangeset(changesetIndex));
-      changeSetCache.put(changesetIndex, res);
+      Changeset res = convert(changesets.getChangeset(changesetIndex), lineNumber);
+      changesetCache.put(changesetIndex, res);
       return res;
+    }
+
+    private static Changeset convert(BatchReport.Changesets.Changeset changeset, int line) {
+      checkState(changeset.hasRevision(), "Changeset on line %s must have a revision", line);
+      checkState(changeset.hasDate(), "Changeset on line %s must have a date", line);
+      return Changeset.newChangesetBuilder()
+        .setRevision(changeset.getRevision())
+        .setAuthor(changeset.hasAuthor() ? changeset.getAuthor() : null)
+        .setDate(changeset.getDate())
+        .build();
     }
   }
 
