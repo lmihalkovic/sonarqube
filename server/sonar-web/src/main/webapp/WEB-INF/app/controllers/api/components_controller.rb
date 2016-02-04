@@ -59,7 +59,7 @@ class Api::ComponentsController < Api::ApiController
 
     json = {'total' => results.size}
     json_results = []
-    java_facade.getResourceTypes().each do |resource_type|
+    ordered_resource_types(java_facade.getResourceTypes()).each do |resource_type|
       qualifier_results={}
       qualifier=resource_type.getQualifier()
       qualifier_results['q']=qualifier
@@ -85,6 +85,29 @@ class Api::ComponentsController < Api::ApiController
   end
 
   private
+
+  #SONAR-7112 view and sub-view must come first
+  def ordered_resource_types(resource_types)
+    view = nil
+    sub_view = nil
+    result = []
+    resource_types.each do |resource_type|
+      if (resource_type.getQualifier()=='VW')
+        view = resource_type
+      elsif (resource_type.getQualifier()=='SVW')
+        sub_view = resource_type
+      else
+        result << resource_type
+      end
+    end
+    if sub_view
+      result.unshift(sub_view)
+    end
+    if view
+      result.unshift(view)
+    end
+    result
+  end
 
   def fix_qualifier(q)
     case q
