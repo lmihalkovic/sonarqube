@@ -32,8 +32,11 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.ibatis.session.ResultContext;
 import org.apache.ibatis.session.ResultHandler;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 import org.sonar.batch.protocol.output.BatchReport;
 import org.sonar.core.util.CloseableIterator;
+import org.sonar.core.util.logs.Profiler;
 import org.sonar.db.DbClient;
 import org.sonar.db.DbSession;
 import org.sonar.db.MyBatis;
@@ -63,6 +66,7 @@ import org.sonar.server.computation.source.SymbolsLineReader;
 import static org.sonar.server.computation.component.ComponentVisitor.Order.PRE_ORDER;
 
 public class PersistFileSourcesStep implements ComputationStep {
+  private static final Logger LOG = Loggers.get(PersistFileSourcesStep.class);
 
   private final DbClient dbClient;
   private final System2 system2;
@@ -110,6 +114,8 @@ public class PersistFileSourcesStep implements ComputationStep {
     @Override
     public void visitProject(Component project) {
       this.projectUuid = project.getUuid();
+      Profiler p = Profiler.create(LOG);
+      p.start();
       session.select("org.sonar.db.source.FileSourceMapper.selectHashesForProject", ImmutableMap.of("projectUuid", projectUuid, "dataType", Type.SOURCE),
         new ResultHandler() {
           @Override
@@ -118,6 +124,7 @@ public class PersistFileSourcesStep implements ComputationStep {
             previousFileSourcesByUuid.put(dto.getFileUuid(), dto);
           }
         });
+      p.stopInfo("Fetched hashes for existing files");
     }
 
     @Override
